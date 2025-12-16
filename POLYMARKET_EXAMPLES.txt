@@ -1,0 +1,57 @@
+How to run the examples (from repo root):
+
+1) Optional: install websockets for live order books
+   python3 -m pip install websockets
+
+2) Run the bundled examples module (prints latest BTC info by default)
+   python3 -m polymarket_btc.examples
+
+
+
+4) Extra example helpers in polymarket_btc/examples.py:
+   - print_latest_summary()      # BTC latest slug, end date, token IDs
+   - print_latest_eth_summary()  # ETH latest slug, end date, token IDs
+   - summarize_time_series()     # BTC time-series summary
+   - summarize_eth_time_series() # ETH time-series summary
+   - fetch_latest_books()        # BTC latest order books (REST)
+   - demo_websocket(messages=3)  # stream a few orderbook updates (requires websockets)
+     NOTE: if the default ws URL is rejected, pass ws_url explicitly (e.g., demo_websocket(ws_url="wss://clob.polymarket.com"))
+
+5) Recorders (write ndjson to disk):
+   - Stream live orderbook for a token_id (requires websockets):
+       python3 - <<'PY'
+       import asyncio
+       from polymarket_btc.recorders import stream_orderbook_to_file
+       asyncio.run(stream_orderbook_to_file("TOKEN_ID", "data/orderbook.ndjson", messages=200, ws_url="wss://clob.polymarket.com"))
+       PY
+
+   - Poll recent trades periodically (REST):
+       python3 - <<'PY'
+       from polymarket_btc.recorders import poll_trades_to_file
+       poll_trades_to_file("TOKEN_ID", "data/trades.ndjson", interval_sec=10, iterations=30)
+       PY
+
+REST-only helpers (no websocket needed):
+- Fetch orderbook once:
+    python3 - <<'PY'
+    from polymarket_btc.orderbook import fetch_orderbook_rest
+    book = fetch_orderbook_rest("TOKEN_ID")
+    print(book.keys())
+    PY
+
+- Fetch recent trades once:
+    python3 - <<'PY'
+    from polymarket_btc.recorders import fetch_trades
+    trades = fetch_trades("TOKEN_ID", limit=200)
+    print(trades)
+    PY
+
+# NOTE: The websocket endpoint at wss://clob.polymarket.com currently rejects upgrades from here (HTTP 200/404).
+# Use REST for now. If you learn the correct ws path, pass it via ws_url in stream_orderbook/stream_orderbook_to_file.
+
+Shell scripts:
+- scripts/fetch_btc_orderbook.sh [TOKEN_ID]
+- scripts/fetch_btc_trades.sh [TOKEN_ID] [LIMIT]
+- scripts/export_daily_snapshot.py > daily_snapshot.csv             # one-shot snapshot of all BTC/ETH daily odds
+- scripts/snapshot_loop.py --out data/daily_snapshots.ndjson \\    # periodic snapshots for historical series
+    --interval 600 --iterations 72
